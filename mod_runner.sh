@@ -14,7 +14,7 @@ get_architecture() {
         *) ARCH="unknown" ;;
     esac
 
-    echo $ARCH
+    echo -n $ARCH
     return 0
 }
 
@@ -89,7 +89,7 @@ get_layer_sha() {
         exit 1
     fi
 
-    echo $LAYER_DIGEST
+    echo -n $LAYER_DIGEST
     return 0
 }
 
@@ -108,7 +108,7 @@ download_mod_layer() {
         "${REGISTRY_API_URL}/blobs/${LAYER_DIGEST}" \
         > "${TEMP_MOD_DIR}/mod.tar"
 
-    echo $TEMP_MOD_DIR
+    echo -n $TEMP_MOD_DIR
     return 0
 }
 
