@@ -25,7 +25,7 @@ get_registry_auth_url() {
     fi
 
     REGISTRY_AUTH_URL="https://auth.docker.io/token?service=registry.docker.io&scope=repository:${1}:pull"
-    echo $REGISTRY_AUTH_URL
+    echo -n $REGISTRY_AUTH_URL
     return 0
 }
 
@@ -36,30 +36,7 @@ get_registry_api_url() {
     fi
 
     REGISTRY_API_URL="https://registry-1.docker.io/v2/${1}"
-    echo $REGISTRY_API_URL
-    return 0
-}
-
-# get_auth_token is used to retrieve an authentication token for the given repo.
-# The Docker API requires this
-get_auth_token() {
-    if [[ -z $1 ]] then
-        echo "get_auth_token expects the docker image as a parameter, but none were passed" 1>&2
-        exit 1
-    fi
-
-    REGISTRY_AUTH_URL=$(get_registry_auth_url $1)
-    REGISTRY_API_URL=$(get_registry_api_url $1)
-
-    echo "Fetching authentication token... 🔑"
-    TOKEN=$(curl -s -f "${REGISTRY_AUTH_URL}" | jq -r '.token')
-
-    if [ -z "${TOKEN}" ]; then
-        echo "❌ Error: Failed to fetch authentication token. Cannot download mod."
-        exit 1
-    fi
-
-    echo $TOKEN
+    echo -n $REGISTRY_API_URL
     return 0
 }
 
@@ -71,10 +48,16 @@ apply_mod() {
     echo $REGISTRY_API_URL
     echo $REGISTRY_AUTH_URL
 
-    echo "Fetching image manifest... 📄"
-    MANIFEST=$(curl -v -H "Accept: application/vnd.oci.image.index.v1+json" -H "Authorization: Bearer ${TOKEN}" "${REGISTRY_API_URL}/manifests/latest")
+    echo "Fetching authentication token... ✅"
+    TOKEN=$(curl -s -f "${REGISTRY_AUTH_URL}" | jq -r '.token')
 
-    echo 1
+    if [ -z "${TOKEN}" ]; then
+        echo "❌ Error: Failed to fetch authentication token. Cannot download mod."
+        exit 1
+    fi
+
+    echo "Fetching image manifest... ✅"
+    MANIFEST=$(curl -s -f -H "Accept: application/vnd.oci.image.index.v1+json" -H "Authorization: Bearer ${TOKEN}" "${REGISTRY_API_URL}/manifests/latest")
 
     ARCH=$(get_architecture)
 
@@ -85,7 +68,7 @@ apply_mod() {
         exit 1
     fi
 
-    echo "Fetching architecture-specific manifest... 💻"
+    echo "Fetching architecture-specific manifest... ✅"
     ARCH_MANIFEST=$(curl -s -f -H "Accept: application/vnd.oci.image.manifest.v1+json" \
         -H "Authorization: Bearer ${TOKEN}" \
         "${REGISTRY_API_URL}/manifests/${SPECIFIC_MANIFEST_DIGEST}")
@@ -99,7 +82,7 @@ apply_mod() {
 
     echo "Found layer digest: ${LAYER_DIGEST} ✅"
 
-    echo "Downloading mod layer... 📥"
+    echo "Downloading mod layer... ✅"
     TEMP_MOD_DIR=$(mktemp -d)
     curl -s -f -L -H "Authorization: Bearer ${TOKEN}" \
         "${REGISTRY_API_URL}/blobs/${LAYER_DIGEST}" \
