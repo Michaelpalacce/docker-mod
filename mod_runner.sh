@@ -40,21 +40,30 @@ get_registry_api_url() {
     return 0
 }
 
-# apply_mod will download and execute the docker mod.
-apply_mod() {
-    TOKEN=$(get_auth_token $1)
+get_auth_token() {
+    if [[ -z $1 ]] then
+        echo "get_auth_token expects the docker image as a parameter, but none were passed" 1>&2
+        exit 1
+    fi
+    
     REGISTRY_AUTH_URL=$(get_registry_auth_url $1)
-    REGISTRY_API_URL=$(get_registry_api_url $1)
-    echo $REGISTRY_API_URL
-    echo $REGISTRY_AUTH_URL
-
-    echo "Fetching authentication token... ✅"
     TOKEN=$(curl -s -f "${REGISTRY_AUTH_URL}" | jq -r '.token')
 
     if [ -z "${TOKEN}" ]; then
         echo "❌ Error: Failed to fetch authentication token. Cannot download mod."
         exit 1
     fi
+    echo -n $TOKEN
+    return 0
+}
+
+
+# apply_mod will download and execute the docker mod.
+apply_mod() {
+    REGISTRY_API_URL=$(get_registry_api_url $1)
+
+    echo "Fetching authentication token... ✅"
+    TOKEN=$(get_auth_token $1)
 
     echo "Fetching image manifest... ✅"
     MANIFEST=$(curl -s -f -H "Accept: application/vnd.oci.image.index.v1+json" -H "Authorization: Bearer ${TOKEN}" "${REGISTRY_API_URL}/manifests/latest")
