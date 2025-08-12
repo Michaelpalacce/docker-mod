@@ -3,7 +3,10 @@
 # POC works with dockerhub only
 
 # Exit immediately if a command exits with a non-zero status.
-set -e
+set -o errexit
+set -o pipefail
+# set -o verbose
+set -o xtrace
 
 # get_architecture will check `uname -m` and based on that map it to docker's expected architecture convention
 get_architecture() {
